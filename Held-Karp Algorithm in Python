@@ -1,0 +1,84 @@
+#An Implementation of a Dynamic Programming (Held-Karp) Algorithm in Python:
+
+from itertools import permutations
+
+# Distance matrix from the given graph
+graph = {
+    1: {2: 12, 3: 10, 7: 12},
+    2: {1: 12, 3: 8, 4: 12},
+    3: {1: 10, 2: 8, 4: 11, 5: 3, 7: 9},
+    4: {2: 12, 3: 11, 5: 10},
+    5: {3: 3, 4: 10, 6: 6, 7: 7},
+    6: {5: 6, 7: 9},
+    7: {1: 12, 3: 9, 5: 7, 6: 9}
+}
+
+# Convert to adjacency matrix for easy indexing
+INF = float('inf')
+cities = list(graph.keys())
+n = len(cities)
+
+# Create a distance matrix
+distance_matrix = [[INF] * n for _ in range(n)]
+for i in range(n):
+    for j in range(n):
+        if i != j and cities[j] in graph[cities[i]]:
+            distance_matrix[i][j] = graph[cities[i]][cities[j]]
+
+# Memoization table for DP
+dp = {}
+
+def tsp(mask, pos):
+    """
+    Solve TSP using Dynamic Programming and Bitmasking.
+    :param mask: A bitmask representing visited cities.
+    :param pos: Current city index.
+    :return: Minimum cost to complete the tour.
+    """
+    if mask == (1 << n) - 1:
+        return distance_matrix[pos][0]  # Return to starting city
+
+    if (mask, pos) in dp:
+        return dp[(mask, pos)]
+
+    # Try visiting all unvisited cities
+    min_cost = INF
+    for city in range(n):
+        if (mask >> city) & 1 == 0:  # If city is not visited
+            new_cost = distance_matrix[pos][city] + tsp(mask | (1 << city), city)
+            min_cost = min(min_cost, new_cost)
+
+    dp[(mask, pos)] = min_cost
+    return min_cost
+
+# Reconstruct path
+def find_path():
+    mask = 1  # Start at city 0
+    pos = 0
+    tour = [cities[pos]]
+
+    while mask != (1 << n) - 1:
+        best_next = -1
+        best_cost = INF
+        for city in range(n):
+            if (mask >> city) & 1 == 0:  # If city is not visited
+                new_mask = mask | (1 << city)
+                cost = distance_matrix[pos][city] + tsp(new_mask, city)
+                if cost < best_cost:
+                    best_cost = cost
+                    best_next = city
+
+        tour.append(cities[best_next])
+        mask |= (1 << best_next)
+        pos = best_next
+
+    tour.append(1)  # Return to start
+    return tour
+
+# Compute shortest TSP path
+optimal_cost = tsp(1, 0)
+optimal_path = find_path()
+
+# Print the results
+print("Optimal Tour:", optimal_path)
+print("Total Distance:", optimal_cost)
